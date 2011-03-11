@@ -97,7 +97,9 @@ sub rainbow_parens {
 	my $input = Irssi::parse_special('$L');
 	$input =~ s/%/%%/g; # Preserve percent signs.
 
-	Irssi::active_win()->print(colourize($input), MSGLEVEL_CLIENTCRAP);
+	if ($input ne '') { # Ignore empty input lines.
+		Irssi::active_win()->print(colourize($input), MSGLEVEL_CLIENTCRAP);
+	}
 }
 
 Irssi::command_bind('rainbow-parens', 'rainbow_parens');
