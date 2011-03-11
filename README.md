@@ -13,6 +13,13 @@ An [irssi](http://www.irssi.org/) plugin that displays matching brackets using m
 1. Type something in irssi.
 2. Hit your binding for `/rainbow-parens` (meta-r (ie. alt-r or esc-r) in the above example).
 
+## Examples
+
+* Matching brackets of all sorts are coloured: ![rainbow](http://0.github.com/irssi-rainbow-parens/examples/rainbow.png).
+* If that isn't possible, mismatched brackets are highlighted: ![mismatched](http://0.github.com/irssi-rainbow-parens/examples/mismatched.png).
+* This is mostly useful for Lisping without indentation: ![lisp](http://0.github.com/irssi-rainbow-parens/examples/lisp.png).
+* However, it works for anything: ![text](http://0.github.com/irssi-rainbow-parens/examples/text.png).
+
 ## Limitations
 
 * Due to the nature of irssi's readline, it is not possible to add formatting directly in the input line, so an extra line is printed each time.
