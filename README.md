@@ -22,6 +22,7 @@ An [irssi](http://www.irssi.org/) script that displays matching brackets using m
 * If that isn't possible, mismatched brackets are highlighted: ![mismatched](http://0.github.com/irssi-rainbow-parens/examples/mismatched.png).
 * This is mostly useful for Lisping without indentation: ![lisp](http://0.github.com/irssi-rainbow-parens/examples/lisp.png).
 * However, it works for anything: ![text](http://0.github.com/irssi-rainbow-parens/examples/text.png).
+* Of course, it still won't save you from [drowning](http://0.github.com/irssi-rainbow-parens/examples/sea.png).
 
 ## Limitations
 
