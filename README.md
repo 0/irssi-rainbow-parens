@@ -11,10 +11,18 @@ An [irssi](http://www.irssi.org/) script that displays matching brackets using m
 3. Bind a key to `/rainbow-parens`. For example, `/bind meta-r /rainbow-parens`.
     * This, too, is only necessary once, because the binding is written to your `~/.irssi/config`.
 
+### Optional
+
+1. Bind a key to `/rainbow-parens -clear`. For example, `/bind meta-R /rainbow-parens -clear`.
+
 ## Usage
 
 1. Type something in irssi.
 2. Hit your binding for `/rainbow-parens` (meta-r (ie. alt-r or esc-r) in the above example).
+
+### Optional
+
+1. If you have a binding for `/rainbow-parens -clear`, (meta-R in the above example) hit it to clear the output produced by this script.
 
 ## Examples
 

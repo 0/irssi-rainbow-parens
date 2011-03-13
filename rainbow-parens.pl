@@ -37,6 +37,9 @@ my $bold_colour = '%9';
 my $reset_colour = '%N';
 my $error_colour = '%w%1'; # White on red.
 
+# Keep track of what has been written, as hashes of views and lines.
+my @output_lines;
+
 # Wrap the item in the colour, and embolden.
 sub apply_colour {
 	my ($colour, $item) = @_;
@@ -98,8 +101,35 @@ sub rainbow_parens {
 	$input =~ s/%/%%/g; # Preserve percent signs.
 
 	if ($input ne '') { # Ignore empty input lines.
+		# Print the result.
 		Irssi::active_win()->print(colourize($input), MSGLEVEL_CLIENTCRAP);
+
+		# Find the last line and record it.
+		my $view = Irssi::active_win()->view();
+		my $line = $view->{buffer}->{cur_line};
+		push(@output_lines, {view => $view, line => $line});
 	}
 }
 
-Irssi::command_bind('rainbow-parens', 'rainbow_parens');
+# Remove all the lines that have been written.
+sub clear_lines {
+	for my $line (@output_lines) {
+		$line->{view}->remove_line($line->{line});
+		$line->{view}->redraw(); # Get rid of the new empty space.
+	}
+
+	@output_lines = ();
+}
+
+# Figure out what to do based on the args.
+sub rainbow_parens_delegate {
+	my ($args) = @_;
+
+	if ($args =~ /-clear/) {
+		clear_lines();
+	} else {
+		rainbow_parens();
+	}
+}
+
+Irssi::command_bind('rainbow-parens', 'rainbow_parens_delegate');
