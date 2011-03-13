@@ -8,7 +8,7 @@ use Irssi;
 use List::MoreUtils qw(zip);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.01';
+$VERSION = '0.02';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
