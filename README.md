@@ -8,21 +8,13 @@ An [irssi](http://www.irssi.org/) script that displays matching brackets using m
     * Perhaps create a symlink to it: `ln -s ~/irssi-rainbow-parens/rainbow-parens.pl ~/.irssi/scripts/autorun/rainbow-parens.pl`.
 2. Run it with `/script load autorun/rainbow-parens`.
     * This should only be necessary once, as having it in the autorun directory will cause it to be loaded each time irssi starts.
-3. Bind a key to `/rainbow-parens`. For example, `/bind meta-r /rainbow-parens`.
+3. Bind a key to `/rainbow-parens-toggle`. For example, `/bind meta-R /rainbow-parens-toggle`.
     * This, too, is only necessary once, because the binding is written to your `~/.irssi/config`.
-
-### Optional
-
-1. Bind a key to `/rainbow-parens -clear`. For example, `/bind meta-R /rainbow-parens -clear`.
 
 ## Usage
 
 1. Type something in irssi.
-2. Hit your binding for `/rainbow-parens` (meta-r (ie. alt-r or esc-r) in the above example).
-
-### Optional
-
-1. If you have a binding for `/rainbow-parens -clear`, (meta-R in the above example) hit it to clear the output produced by this script.
+2. Hit your binding for `/rainbow-parens-toggle` (meta-R (ie. alt-R or esc-R) in the above example).
 
 ## Examples
 
@@ -34,4 +26,4 @@ An [irssi](http://www.irssi.org/) script that displays matching brackets using m
 
 ## Limitations
 
-* Due to the nature of irssi's readline, it is not possible to add formatting directly in the input line, so a line is printed each time.
+* Due to the nature of irssi's readline, it is not possible to add formatting directly in the input line, so an extra line is output to the screen instead.

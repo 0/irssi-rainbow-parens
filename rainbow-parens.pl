@@ -4,11 +4,12 @@ use strict;
 use warnings;
 
 use Irssi;
+use Irssi::TextUI;
 
 use List::MoreUtils qw(zip);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.02';
+$VERSION = '0.03';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
@@ -37,8 +38,11 @@ my $bold_colour = '%9';
 my $reset_colour = '%N';
 my $error_colour = '%w%1'; # White on red.
 
-# Keep track of what has been written, as hashes of views and lines.
-my @output_lines;
+# Keep track of the colourized line as a hashref with the view and line.
+my $colourized_line;
+
+# Whether the script is active.
+my $on = 0;
 
 # Wrap the item in the colour, and embolden.
 sub apply_colour {
@@ -107,29 +111,43 @@ sub rainbow_parens {
 		# Find the last line and record it.
 		my $view = Irssi::active_win()->view();
 		my $line = $view->{buffer}->{cur_line};
-		push(@output_lines, {view => $view, line => $line});
+		$colourized_line = {view => $view, line => $line};
 	}
 }
 
 # Remove all the lines that have been written.
-sub clear_lines {
-	for my $line (@output_lines) {
-		$line->{view}->remove_line($line->{line});
-		$line->{view}->redraw(); # Get rid of the new empty space.
-	}
+sub clear_line {
+	if ($colourized_line) {
+		$colourized_line->{view}->remove_line($colourized_line->{line});
+		$colourized_line->{view}->redraw(); # Get rid of the new empty space.
 
-	@output_lines = ();
+		$colourized_line = undef;
+	}
 }
 
-# Figure out what to do based on the args.
-sub rainbow_parens_delegate {
-	my ($args) = @_;
+# Update the colourized line in response to some change.
+sub update_rainbow_parens {
+	clear_line();
+	rainbow_parens();
+}
 
-	if ($args =~ /-clear/) {
-		clear_lines();
-	} else {
+# Toggle rainbow-parens.
+sub rainbow_parens_toggle {
+	if ($on) { # Disable.
+		$on = 0;
+
+		Irssi::signal_remove('gui key pressed', 'update_rainbow_parens');
+		Irssi::signal_remove('window changed', 'update_rainbow_parens');
+
+		clear_line();
+	} else { # Enable.
+		$on = 1;
+
 		rainbow_parens();
+
+		Irssi::signal_add_last('gui key pressed', 'update_rainbow_parens');
+		Irssi::signal_add_last('window changed', 'update_rainbow_parens');
 	}
 }
 
-Irssi::command_bind('rainbow-parens', 'rainbow_parens_delegate');
+Irssi::command_bind('rainbow-parens-toggle', 'rainbow_parens_toggle');
