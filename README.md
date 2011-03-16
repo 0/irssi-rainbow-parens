@@ -14,7 +14,7 @@ An [irssi](http://www.irssi.org/) script that displays matching brackets using m
 ## Usage
 
 1. Type something in irssi.
-2. Hit your binding for `/rainbow-parens-toggle` (meta-R (ie. alt-R or esc-R) in the above example).
+2. Hit your binding for `/rainbow-parens-toggle` (meta-R (ie. alt-shift-r or esc-shift-r) in the above example).
 
 ## Examples
 
