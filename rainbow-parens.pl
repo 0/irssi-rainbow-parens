@@ -38,6 +38,12 @@ my $bold_colour = '%9';
 my $reset_colour = '%N';
 my $error_colour = '%w%1'; # White on red.
 
+# Signals to catch when the script is active.
+my @signals = (
+	['gui key pressed', 'update_rainbow_parens'],
+	['window changed', 'update_rainbow_parens'],
+);
+
 # Keep track of the colourized line as a hashref with the view and line.
 my $colourized_line;
 
@@ -136,8 +142,9 @@ sub rainbow_parens_toggle {
 	if ($on) { # Disable.
 		$on = 0;
 
-		Irssi::signal_remove('gui key pressed', 'update_rainbow_parens');
-		Irssi::signal_remove('window changed', 'update_rainbow_parens');
+		for my $s (@signals) {
+			Irssi::signal_remove($s->[0], $s->[1]);
+		}
 
 		clear_line();
 	} else { # Enable.
@@ -145,8 +152,9 @@ sub rainbow_parens_toggle {
 
 		rainbow_parens();
 
-		Irssi::signal_add_last('gui key pressed', 'update_rainbow_parens');
-		Irssi::signal_add_last('window changed', 'update_rainbow_parens');
+		for my $s (@signals) {
+			Irssi::signal_add_last($s->[0], $s->[1]);
+		}
 	}
 }
 
