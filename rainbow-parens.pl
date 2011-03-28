@@ -7,9 +7,10 @@ use Irssi;
 use Irssi::TextUI;
 
 use List::MoreUtils qw(zip);
+use POSIX qw(ceil);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.04';
+$VERSION = '0.05';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
@@ -38,17 +39,12 @@ my $bold_colour = '%9';
 my $reset_colour = '%N';
 my $error_colour = '%w%1'; # White on red.
 
-# Signals to catch when the script is active.
-my @signals = (
-	['gui key pressed', 'update_rainbow_parens'],
-	['window changed', 'update_rainbow_parens'],
-);
-
-# Keep track of the colourized line as a hashref with the view and line.
-my $colourized_line;
-
-# Whether the script is active.
-my $on = 0;
+# Window management.
+my $window_name = $IRSSI{name};
+my $min_refnum = 99;
+# If the script was restarted, try to find the window it was using.
+my $rainbow_window = Irssi::window_find_name($window_name);
+my ($min_lines, $max_lines); # From settings.
 
 # Wrap the item in the colour, and embolden.
 sub apply_colour {
@@ -106,56 +102,143 @@ sub colourize {
 
 # Colourize the brackets in the input line and show the results.
 sub rainbow_parens {
+	return unless $rainbow_window; # Shouldn't happen, really.
+
 	# Get the contents of the input line.
 	my $input = Irssi::parse_special('$L');
 	$input =~ s/%/%%/g; # Preserve percent signs.
 
-	if ($input ne '') { # Ignore empty input lines.
-		# Print the result.
-		Irssi::active_win()->print(colourize($input), MSGLEVEL_CLIENTCRAP);
+	# Show the result.
+	$rainbow_window->command('clear');
+	$rainbow_window->print(colourize($input), MSGLEVEL_NEVER);
 
-		# Find the last line and record it.
-		my $view = Irssi::active_win()->view();
-		my $line = $view->{buffer}->{cur_line};
-		$colourized_line = {view => $view, line => $line};
+	# Set window to the appropriate size.
+	my $required_lines = ceil(length($input) / $rainbow_window->{width});
+	if ($required_lines < $min_lines) {
+		$required_lines = $min_lines;
+	} elsif ($required_lines > $max_lines) {
+		$required_lines = $max_lines;
+	}
+	if ($rainbow_window->{height} != $required_lines) {
+		$rainbow_window->command("window size $required_lines");
 	}
 }
 
-# Remove all the lines that have been written.
-sub clear_line {
-	if ($colourized_line) {
-		$colourized_line->{view}->remove_line($colourized_line->{line});
-		$colourized_line->{view}->redraw(); # Get rid of the new empty space.
+# Open the preview window.
+sub open_window {
+	return if $rainbow_window;
 
-		$colourized_line = undef;
+	my $lastwin = Irssi::active_win(); # Will need to restore focus later.
+
+	$rainbow_window = Irssi::Windowitem::window_create(0, 0);
+
+	# Claim the name unconditionally; should be unique enough.
+	$rainbow_window->set_name($window_name);
+
+	# Ensure we're not treading on anyone for the refnum though.
+	my $last_refnum = Irssi::windows_refnum_last();
+	if ($last_refnum + 1 >= $min_refnum) { # Big enough.
+		$rainbow_window->set_refnum($last_refnum + 1);
+	} else {
+		$rainbow_window->set_refnum($min_refnum);
+	}
+
+	# Show the window, and give back focus.
+	$lastwin->set_active();
+	$lastwin->command("window show $window_name");
+	$lastwin->set_active();
+
+	# Resize later as needed.
+	$rainbow_window->command("window size $min_lines");
+}
+
+# Close the preview window.
+sub close_window {
+	return unless $rainbow_window;
+
+	$rainbow_window->destroy();
+
+	$rainbow_window = undef;
+}
+
+my $close_on_typing = 0;
+
+# Close the preview window after rainbow_parens_once.
+sub close_on_typing {
+	if ($close_on_typing) {
+		Irssi::signal_remove('gui key pressed' => 'close_on_typing');
+
+		close_window();
+	} else {
+		# The signal is set up in response to a key press, so skip the first run.
+		$close_on_typing = 1;
 	}
 }
 
-# Update the colourized line in response to some change.
-sub update_rainbow_parens {
-	clear_line();
+# Toggle temporary, once-view rainbow-parens.
+sub rainbow_parens_once {
+	return if $rainbow_window; # To do otherwise would be silly.
+
+	open_window();
 	rainbow_parens();
+
+	# Prepare the window to be closed upon the next keystroke.
+	$close_on_typing = 0;
+	Irssi::signal_add_last('gui key pressed' => 'close_on_typing');
 }
 
-# Toggle rainbow-parens.
+# Toggle permanent, live-view rainbow-parens.
 sub rainbow_parens_toggle {
-	if ($on) { # Disable.
-		$on = 0;
+	if ($rainbow_window) {
+		Irssi::signal_remove('gui key pressed' => 'rainbow_parens');
 
-		for my $s (@signals) {
-			Irssi::signal_remove($s->[0], $s->[1]);
-		}
+		close_window();
+	} else {
+		open_window();
 
-		clear_line();
-	} else { # Enable.
-		$on = 1;
-
-		rainbow_parens();
-
-		for my $s (@signals) {
-			Irssi::signal_add_last($s->[0], $s->[1]);
-		}
+		Irssi::signal_add_last('gui key pressed' => 'rainbow_parens');
 	}
 }
 
+# Try to ensure the setting name is unique.
+sub gen_setting_name {
+	my ($setting) = @_;
+
+	return "$IRSSI{name}-$setting";
+}
+
+# Grab the settings from Irssi.
+sub load_settings {
+	$min_lines = Irssi::settings_get_int(gen_setting_name('min_lines'));
+	$max_lines = Irssi::settings_get_int(gen_setting_name('max_lines'));
+}
+
+# Obtain and verify any new settings.
+Irssi::signal_add_last('setup changed' => sub {
+	load_settings();
+
+	my @problems;
+
+	if ($min_lines <= 1) {
+		push @problems, 'min_lines <= 1: Irssi does not appear to support single-line windows.';
+	}
+	if ($max_lines < $min_lines) {
+		push @problems, 'max_lines < min_lines: So confused!';
+	}
+
+	if (@problems) {
+		print $IRSSI{name}, ' configuration problems:';
+
+		for my $problem (@problems) {
+			print ' ' x 4, $problem;
+		}
+	}
+});
+
+Irssi::command_bind('rainbow-parens-once', 'rainbow_parens_once');
 Irssi::command_bind('rainbow-parens-toggle', 'rainbow_parens_toggle');
+
+Irssi::settings_add_int($IRSSI{name}, gen_setting_name('min_lines'), 2);
+Irssi::settings_add_int($IRSSI{name}, gen_setting_name('max_lines'), 8);
+
+load_settings();
