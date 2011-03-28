@@ -9,7 +9,7 @@ use Irssi::TextUI;
 use List::MoreUtils qw(zip);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.03';
+$VERSION = '0.04';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
@@ -26,14 +26,14 @@ my %char_pairs = (
 );
 
 # All the characters of interest:
-my $chars = join('', map { '\\' . $_ } %char_pairs);
+my $chars = join('', map { "\\$_" } %char_pairs);
 my $chars_regex = qr/
 	\G                # From the last match spot,
 	(?<text>.*?)      # take anything and then a
 	(?<char>[$chars]) # character we want.
 /ox;
 
-my @colours = map { '%' . $_ } qw(b g r m y c);
+my @colours = map { "%$_" } qw(b g r m y c);
 my $bold_colour = '%9';
 my $reset_colour = '%N';
 my $error_colour = '%w%1'; # White on red.
