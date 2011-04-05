@@ -10,7 +10,7 @@ use List::MoreUtils qw(zip);
 use POSIX qw(ceil);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.05';
+$VERSION = '0.06';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
@@ -55,49 +55,69 @@ sub apply_colour {
 
 # Colourize the brackets in matching pairs.
 sub colourize {
-	my ($input) = @_;
+	my @input_lines = @_;
 
 	# Strings which are separated by the brackets.
 	my @resulting_text;
 	# Brackets with colour paired, but not yet applied: [colour, character].
 	my @resulting_parens;
+	# Remainders of the strings.
+	my @final_text;
 
 	# Indices of @resulting_parens.
 	my @char_stack;
 
-	# Find all brackets.
-	while ($input =~ /$chars_regex/gc) {
-		my ($text, $char) = ($+{text}, $+{char});
-		my $paren_colour = $error_colour; # Assume the worst.
+	while (my ($i, $input) = each(@input_lines)) {
+		push(@resulting_text, []);
+		push(@resulting_parens, []);
 
-		if (exists $char_pairs{$char}) { # Opening character.
-			# Pick a colour, any colour!
-			$paren_colour = $colours[@char_stack % @colours];
+		# Find all brackets.
+		while ($input =~ /$chars_regex/gc) {
+			my ($text, $char) = ($+{text}, $+{char});
+			my $paren_colour = $error_colour; # Assume the worst.
 
-			push(@char_stack, scalar @resulting_parens);
-		} elsif (@char_stack > 0) { # Closing character?
-			if ($char_pairs{$resulting_parens[$char_stack[-1]]->[1]} eq $char) {
-				# Use the same colour as the matching item on the stack.
-				$paren_colour = $resulting_parens[pop(@char_stack)]->[0];
-			} # No match, no pop.
+			if (exists $char_pairs{$char}) { # Opening character.
+				# Pick a colour, any colour!
+				$paren_colour = $colours[@char_stack % @colours];
+
+				push(@char_stack, [$i, scalar @{$resulting_parens[$i]}]);
+			} elsif (@char_stack > 0) { # Closing character?
+				# Figure out which character we're looking at.
+				my ($line, $paren) = @{$char_stack[-1]};
+				my $stack_char = $resulting_parens[$line][$paren];
+
+				if ($char_pairs{$stack_char->[1]} eq $char) {
+					pop(@char_stack);
+
+					# Use the same colour as the matching item on the stack.
+					$paren_colour = $stack_char->[0];
+				} # No match, no pop.
+			}
+
+			push(@{$resulting_text[-1]}, $text);
+			push(@{$resulting_parens[-1]}, [$paren_colour, $char]);
 		}
 
-		push(@resulting_text, $text);
-		push(@resulting_parens, [$paren_colour, $char]);
-	}
-
-	my $final_text; # The remainder of the string.
-	if ($input =~ /\G(?<final_text>.*)$/g) {
-		$final_text = $+{final_text};
+		if ($input =~ /\G(?<final_text>.*)$/g) {
+			push(@final_text, $+{final_text});
+		} else {
+			push(@final_text, '');
+		}
 	}
 
 	for my $extra (@char_stack) { # Take care of any leftover brackets.
-		$resulting_parens[$extra]->[0] = $error_colour;
+		my ($line, $paren) = @{$extra};
+		my $stack_char = $resulting_parens[$line][$paren];
+		$stack_char->[0] = $error_colour;
 	}
 
-	# Apply the final colours and reassemble the string.
-	my @coloured_parens = map { apply_colour(@{$_}) } @resulting_parens;
-	return join('', zip(@resulting_text, @coloured_parens), $final_text);
+	my @result_lines;
+	for my $i (0..$#input_lines) {
+		# Apply the final colours and reassemble the string.
+		my @coloured_parens = map { apply_colour(@{$_}) } @{$resulting_parens[$i]};
+		push(@result_lines, join('', zip(@{$resulting_text[$i]}, @coloured_parens), $final_text[$i]));
+	}
+	return @result_lines;
 }
 
 # Colourize the brackets in the input line and show the results.
@@ -108,12 +128,16 @@ sub rainbow_parens {
 	my $input = Irssi::parse_special('$L');
 	$input =~ s/%/%%/g; # Preserve percent signs.
 
+	# Split the input into lines that fit the window.
+	my $w = $rainbow_window->{width};
+	my @input_lines = ($input =~ /.{1,${w}}/go);
+
 	# Show the result.
 	$rainbow_window->command('clear');
-	$rainbow_window->print(colourize($input), MSGLEVEL_NEVER);
+	$rainbow_window->print($_, MSGLEVEL_NEVER) for colourize(@input_lines);
 
 	# Set window to the appropriate size.
-	my $required_lines = ceil(length($input) / $rainbow_window->{width});
+	my $required_lines = @input_lines;
 	if ($required_lines < $min_lines) {
 		$required_lines = $min_lines;
 	} elsif ($required_lines > $max_lines) {
