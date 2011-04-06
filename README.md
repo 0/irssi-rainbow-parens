@@ -20,12 +20,14 @@ To change them, use the Irssi `/set` command; for example, `/set rainbow-parens-
 
 ## Bindings
 
-There are two public-facing commands which can be bound to keys.
+There are four public-facing commands which can be bound to keys.
 
 To bind a key, use the Irssi `/bind` command; for example, `/bind meta-R /rainbow-parens-toggle`.
 
-* **rainbow-parens-toggle**: This opens and closes a permanent window which is updated with each keystroke.
+* **rainbow-parens-toggle**: This opens and closes a permanent window which is updated with each keystroke. _Suggested binding_: meta-R.
 * **rainbow-parens-once**: This opens a temporary window which is closed upon the next keystroke. Primarily useful for verifying a single line.
+* **rainbow-parens-prev**: Instead of displaying the contents of the input line, runs through the output buffer and colourizes the selected output line. _Suggested binding_: meta-P.
+* **rainbow-parens-next**: Same as **rainbow-parens-prev**, but in the opposite direction. _Suggested binding_: meta-N.
 
 ## Examples
 

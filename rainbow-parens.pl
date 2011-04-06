@@ -10,7 +10,7 @@ use List::MoreUtils qw(zip);
 use POSIX qw(ceil);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.06';
+$VERSION = '0.07';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
@@ -45,6 +45,10 @@ my $min_refnum = 99;
 # If the script was restarted, try to find the window it was using.
 my $rainbow_window = Irssi::window_find_name($window_name);
 my ($min_lines, $max_lines); # From settings.
+
+# Function-specific global state.
+my $current_line;
+my $close_on_typing = 0;
 
 # Wrap the item in the colour, and embolden.
 sub apply_colour {
@@ -124,8 +128,14 @@ sub colourize {
 sub rainbow_parens {
 	return unless $rainbow_window; # Shouldn't happen, really.
 
-	# Get the contents of the input line.
-	my $input = Irssi::parse_special('$L');
+	my $input;
+	if ($current_line) {
+		# Get the context of the selected output line.
+		$input = $current_line->get_text(0);
+	} else {
+		# Get the contents of the input line.
+		$input = Irssi::parse_special('$L');
+	}
 	$input =~ s/%/%%/g; # Preserve percent signs.
 
 	# Split the input into lines that fit the window.
@@ -183,9 +193,9 @@ sub close_window {
 	$rainbow_window->destroy();
 
 	$rainbow_window = undef;
-}
 
-my $close_on_typing = 0;
+	$current_line = undef; # Drop back to the input line.
+}
 
 # Close the preview window after rainbow_parens_once.
 sub close_on_typing {
@@ -221,6 +231,31 @@ sub rainbow_parens_toggle {
 		open_window();
 
 		Irssi::signal_add_last('gui key pressed' => 'rainbow_parens');
+	}
+}
+
+# Switch to the next line in the output buffer.
+sub rainbow_parens_next {
+	return unless $current_line;
+
+	my $next = $current_line->next();
+	if ($next) {
+		$current_line = $next;
+	} else {
+		$current_line = undef; # No next line, so back to the input line.
+	}
+}
+
+# Switch to the previous line in the output buffer.
+sub rainbow_parens_prev {
+	if ($current_line) {
+		my $prev = $current_line->prev();
+		if ($prev) {
+			$current_line = $prev;
+		} # else { Stay on the first line. }
+	} else {
+		# Obtain the last line in the current window.
+		$current_line = Irssi::active_win()->view()->{buffer}{cur_line};
 	}
 }
 
@@ -261,6 +296,8 @@ Irssi::signal_add_last('setup changed' => sub {
 
 Irssi::command_bind('rainbow-parens-once', 'rainbow_parens_once');
 Irssi::command_bind('rainbow-parens-toggle', 'rainbow_parens_toggle');
+Irssi::command_bind('rainbow-parens-prev', 'rainbow_parens_prev');
+Irssi::command_bind('rainbow-parens-next', 'rainbow_parens_next');
 
 Irssi::settings_add_int($IRSSI{name}, gen_setting_name('min_lines'), 2);
 Irssi::settings_add_int($IRSSI{name}, gen_setting_name('max_lines'), 8);
