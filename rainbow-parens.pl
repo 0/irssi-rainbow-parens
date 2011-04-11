@@ -10,7 +10,7 @@ use List::MoreUtils qw(zip);
 use POSIX qw(ceil);
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '0.07';
+$VERSION = '1.00';
 %IRSSI = (
 	authors => 'Dmitri Iouchtchenko',
 	contact => 'johnnyspoon@gmail.com',
